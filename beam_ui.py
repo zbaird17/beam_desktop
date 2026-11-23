@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -14,6 +14,20 @@ from beam_calculations import (
     evaluate_at,
     recommend_section,
 )
+from design_io import DesignFileError, load_design, save_design
+from csv_output import export_csv
+
+
+def format_chart_crosshair_value(quantity, value):
+    if quantity == "V":
+        return f"{value:+.3f} kips"
+    if quantity == "M":
+        return f"{value:+.3f} kip-ft"
+    if quantity == "theta":
+        return f"{value:+.6f} rad"
+    if quantity == "y":
+        return f"{value:+.3f} in"
+    return f"{value:+.3f}"
 
 
 class BeamDesignerUI:
@@ -53,7 +67,14 @@ class BeamDesignerUI:
         header = ttk.Frame(self.root)
         header.pack(fill="x", padx=24, pady=(14, 10))
         ttk.Label(header, text="Beam Designer", style="Title.TLabel").pack(side="left")
-        ttk.Label(header, text="Single-span beam analysis").pack(side="right")
+        header_actions = ttk.Frame(header)
+        header_actions.pack(side="right")
+        ttk.Button(header_actions, text="Load design",
+                   command=self.load_design).pack(side="left", padx=(0, 6))
+        ttk.Button(header_actions, text="Save design",
+                   command=self.save_design).pack(side="left")
+        ttk.Button(header_actions, text="Export CSV",
+                   command=self.export_csv).pack(side="left", padx=(6, 0))
 
         app = ttk.Frame(self.root)
         app.pack(fill="both", expand=True, padx=18, pady=(0, 18))
@@ -314,6 +335,105 @@ class BeamDesignerUI:
             self.section_var.set(self.suggested_section)
             self.section = self.suggested_section
             self.refresh()
+
+    def _state_for_file(self):
+        return {
+            "support": self.support,
+            "span": self.span,
+            "material": self.material,
+            "section": self.section,
+            "deflection_limit": self.deflection_limit,
+            "loads": self.loads,
+        }
+
+    def save_design(self):
+        path = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="Save Beam Designer design",
+            defaultextension=".beam.json",
+            filetypes=(("Beam design (*.beam.json)", "*.beam.json"),
+                       ("JSON files (*.json)", "*.json"),
+                       ("All files (*.*)", "*.*")),
+        )
+        if not path:
+            return
+        try:
+            save_design(path, self._state_for_file())
+        except (DesignFileError, OSError) as exc:
+            messagebox.showerror("Could not save design", str(exc),
+                                 parent=self.root)
+            return
+        messagebox.showinfo("Design saved",
+                            f"Saved beam design to:\n{path}",
+                            parent=self.root)
+
+    def export_csv(self):
+        path = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="Export beam output values",
+            defaultextension=".csv",
+            filetypes=(("Excel CSV (*.csv)", "*.csv"),
+                       ("CSV files (*.csv)", "*.csv"),
+                       ("All files (*.*)", "*.*")),
+        )
+        if not path:
+            return
+        try:
+            export_csv(path, self._state_for_file())
+        except (ValueError, OSError) as exc:
+            messagebox.showerror("Could not export CSV", str(exc),
+                                 parent=self.root)
+            return
+        messagebox.showinfo(
+            "CSV exported",
+            f"Exported beam output values to:\n{path}",
+            parent=self.root,
+        )
+
+    def load_design(self):
+        path = filedialog.askopenfilename(
+            parent=self.root,
+            title="Load Beam Designer design",
+            filetypes=(("Beam design (*.beam.json)", "*.beam.json"),
+                       ("JSON files (*.json)", "*.json"),
+                       ("All files (*.*)", "*.*")),
+        )
+        if not path:
+            return
+        try:
+            design = load_design(path)
+        except (DesignFileError, OSError) as exc:
+            messagebox.showerror("Could not load design", str(exc),
+                                 parent=self.root)
+            return
+
+        self.support = design["support"]
+        self.support_var.set(
+            "Simply supported" if self.support == "simply_supported"
+            else "Cantilever (fixed left end)")
+        self.span = design["span"]
+        self.span_var.set(f"{self.span:g}")
+        self.span_slider.set(self.span)
+        self.span_error.configure(text="")
+        self.material = design["material"]
+        self.material_var.set(
+            "Steel W-shapes" if self.material == "steel"
+            else "Douglas Fir-Larch No. 2 lumber")
+        names = (["W8x10", "W10x12", "W12x26", "W14x22",
+                  "W16x26", "W18x35", "W21x44", "W24x55"]
+                 if self.material == "steel"
+                 else ["2x8", "2x10", "2x12"])
+        self.section_combo.configure(values=names)
+        self.section = design["section"]
+        self.section_var.set(self.section)
+        self.deflection_limit = design["deflection_limit"]
+        self.limit_var.set(self.deflection_limit)
+        self.load_counter = len(design["loads"])
+        self.loads = []
+        for load_id, load in enumerate(design["loads"], start=1):
+            self.loads.append({"id": load_id, **load})
+        self.crosshair = min(self.span, self.crosshair)
+        self.refresh()
 
     def _point_loads(self):
         return tuple(PointLoad(load["magnitude"], load["position"])
@@ -606,14 +726,49 @@ class BeamDesignerUI:
             for line in list(ax.lines):
                 if getattr(line, "_beam_crosshair", False):
                     line.remove()
-        for ax in self.axes:
-            line = ax.axvline(self.crosshair, color="#172f3b",
-                              linewidth=1, linestyle="--", alpha=0.7)
-            line._beam_crosshair = True
+            for text in list(ax.texts):
+                if getattr(text, "_beam_crosshair", False):
+                    text.remove()
 
         direct = evaluate_at(
             self.latest_analysis, self.crosshair,
             self._point_loads(), self._uniform_loads())
+
+        chart_values = (
+            (self.shear_ax, "V", "V", "#087e83"),
+            (self.moment_ax, "M", "M", "#087e83"),
+            (self.rotation_ax, "theta", "theta", "#7a4aa3"),
+            (self.deflection_ax, "y", "y", "#4567a7"),
+        )
+        for ax, key, label, color in chart_values:
+            line = ax.axvline(self.crosshair, color="#172f3b",
+                              linewidth=1, linestyle="--", alpha=0.7)
+            line._beam_crosshair = True
+            value = direct[key]
+            marker = ax.plot(self.crosshair, value, "o", color=color,
+                             markersize=5, zorder=7)[0]
+            marker._beam_crosshair = True
+
+            right_side = self.crosshair > self.span * 0.68
+            annotation = ax.annotate(
+                f"x={direct['x']:.2f} ft\n{label} = "
+                f"{format_chart_crosshair_value(key, value)}",
+                xy=(self.crosshair, value),
+                xytext=(-10 if right_side else 10,
+                        10),
+                textcoords="offset points",
+                ha="right" if right_side else "left",
+                va="bottom",
+                fontsize=8,
+                color="#172f3b",
+                bbox=dict(boxstyle="round,pad=0.25",
+                          facecolor="#ffffff",
+                          edgecolor="#b9c8cd",
+                          alpha=0.96),
+                zorder=9,
+            )
+            annotation._beam_crosshair = True
+
         self.readout_label.configure(
             text=(f"x = {direct['x']:.2f} ft   "
                   f"V = {direct['V']:+.3f} kips   "

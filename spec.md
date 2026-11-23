@@ -104,6 +104,10 @@ sizing a floor beam or deck joist.
   - Each diagram has a labeled vertical axis, units, a zero reference line, and readable value ticks. Plot signed values using the calculation sign convention. Label the signed value and position of the point with the maximum absolute value. If the live crosshair is at a labeled maximum, use its inline value instead of a duplicate extrema label.
   - If the deflected shape is vertically exaggerated for visibility, label that the displayed vertical scale is exaggerated.
 - Hovering over a diagram or tapping/dragging on it shows a vertical guide across all four diagrams. Show each diagram's current signed value with units beside its crosshair point, and keep a shared readout of x (ft), V (kips), M (kip-ft), `θ` (rad), and y (in) synchronized. When a diagram is keyboard-focused, the arrow keys move the guide along the span and update both the inline and shared readouts. Keep inline values legible on narrow screens.
+- On each chart, place a compact live value label beside the shared cursor point.
+  The label includes the chart quantity and unit (kips, kip-ft, rad, or in) and
+  follows the cursor as it moves. These labels are intentionally visible on the
+  charts so the user does not need to scroll to the shared readout.
 - Two check cards, Bending and Deflection, show the actual and allowable values with units, the check ratio as a percentage, and PASS or FAIL. The bending card shows `fb` and `Fb` in ksi; the deflection card shows `y_max` and `delta_allow` in inches and identifies the selected L/240 or L/360 limit. The ratio bar is green below 70%, amber from 70% through 100%, and red above 100%; status text must remain explicit and not rely on color alone.
 - Identify the currently evaluated material and section, including its self-weight. For the chosen material, suggest the lightest passing section for steel or first in the table for lumber, evaluating every section with its own self-weight, and provide a button to use it. If no listed section passes, say so and do not show a use-this-section button.
 - Everything updates immediately whenever any input changes.
@@ -131,7 +135,7 @@ sizing a floor beam or deck joist.
   must not depend on hover alone.
 
 ## Validation
-1. Simply supported, 20 ft, W12x26 (26 lb/ft), user uniform load
+1. Simply sup   ported, 20 ft, W12x26 (26 lb/ft), user uniform load
    1 kip/ft over the full span: include 0.026 kip/ft self-weight, for
    1.026 kip/ft total uniform load. Reactions are 10.26 k each; maximum
    shear is 10.26 k; maximum moment is 51.30 kip-ft at 10 ft; `fb` is
@@ -154,15 +158,44 @@ sizing a floor beam or deck joist.
    moment is 0.961 kip-ft at 6 ft; `fb` is 0.539 ksi; maximum deflection
    is 0.157 in at 6 ft. Both checks pass.
 5. Simply supported, 30 ft, W18x35, uniform 2 kips/ft from 0 to 15 ft
-   only: reactions 22.5 k (left) and 7.5 k (right); max moment
-   126.6 kip-ft at 11.25 ft.
+   only: include the 0.035 kip/ft full-span W18x35 self-weight. Reactions are
+   23.025 k (left) and 8.025 k (right); maximum moment is 130.258 kip-ft at
+   11.314 ft.
+
+## Extra Features
+- Beam self-weight calculated from steel beam names and wood density.
+- Output of beam rotation angle between moment and deflection
+- Live chart cursor labels show signed values with units directly on each
+  shear, moment, rotation, and deflection chart.
+- CSV export of x, V, M, theta, and deflection values.
+- Export beam output values to an Excel-compatible CSV file.
+  - The app provides an **Export CSV** control.
+  - The CSV is saved with UTF-8 and a `.csv` extension.
+  - The column headers include units:
+    `x (ft), V (kips), M (kip-ft), theta (rad), deflection y (in)`.
+  - Rows cover the beam from 0 to L at 0.25-ft intervals, including the final
+    span endpoint.
+  - Values are evaluated directly from the beam equations, not interpolated
+    from chart samples.
+  - The export includes no design metadata or extra summary columns.
+- Save design and load design using human-readable JSON files.
+  - Provide **Save design** and **Load design** controls in the desktop header or setup panel.
+  - The saved file contains a format version and all solver inputs: support type,
+    span, selected material and section, deflection limit, and editable point/uniform loads.
+  - Do not save calculated reactions, diagrams, crosshair position, or section recommendations.
+  - File type: `.beam.json`; the save dialog should use `Beam design (*.beam.json)`.
+  - Loading replaces the current design only after all fields in the file pass validation.
+  - Invalid JSON, unsupported format versions, unknown supports/materials/sections,
+    out-of-range spans, invalid load types or values, and distributed loads that do not
+    overlap or are not ordered from start to end produce a plain-language error.
+  - Point-load positions snap to 0.25 ft only when loaded if the stored position is not
+    already on that grid.
 
 ## Out of scope
 - Moisture- or product-specific changes to the stated lumber self-weight
   estimate, shear stress, lateral-torsional buckling, load combinations,
   and continuous beams.
 - Assume linearly elastic materials and small enough deflections for the equations to remain valid.
-- Saving designs.
 
 ## Build stages
 1. **Static page mockup — no calculations**
