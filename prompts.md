@@ -18,4 +18,4 @@
 2026-11-23 - Verification complete: 17 tests pass, midspan deflection is negative, left/right rotations follow the downward-negative convention, and python app.py stays open.
 2026-11-23 - Increased graph title padding in both the desktop UI and PDF diagrams so titles have clear separation above their plots.
 2026-11-23 - Verification complete: 17 tests pass and python app.py stays open after the graph-title spacing update.
-2026-11-23 - Re-ran the complete 17-test suite and all five specification beam validation cases successfully. Preparing and committing the current UI, sign-convention, PDF, CSV, and graph-title changes.
+2026-11-23 - Re-ran the complete 17-test suite and all five specification beam validation cases successfully. Committed the UI, sign-convention, PDF, CSV, scrolling, output-layout, and graph-title changes as 3ddd29d.
