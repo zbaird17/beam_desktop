@@ -6,6 +6,12 @@
 A simplified beam design tool for engineers and students. The user sets up a beam,
 places loads on it, and picks the lightest steel or lumber (as selected) section that meets the criteria. The app shows the shear, moment, and deflection diagrams and checks whether the beam is strong and stiff enough, updating instantly as anything changes.
 
+## Platform
+- Python desktop app using Tkinter, started with `python app.py`
+- Calculations with numpy, kept in their own module, separate from
+  the window code
+- Diagrams drawn with matplotlib, embedded in the window
+
 ## Users
 A civil engineering student checking a homework beam, or an engineer
 sizing a floor beam or deck joist.
@@ -103,6 +109,7 @@ sizing a floor beam or deck joist.
 - Everything updates immediately whenever any input changes.
 
 ## Look and feel
+- Format for desktop screens
 - Opens with an example already loaded (20 ft simply supported W12x26
   with a 1 kip/ft uniform load over the full span), so it is useful the
   moment it opens.
@@ -110,9 +117,8 @@ sizing a floor beam or deck joist.
   background, white cards with soft shadows, one accent color, a modern
   system font, and generous spacing. Keep the interface uncluttered, with
   readable text and strong contrast for labels, values, and status messages.
-- On desktop, place inputs in a panel on the left and the beam drawing,
-  diagrams, and checks on the right. On narrow screens, stack inputs before
-  results; keep diagrams within the available width and axis labels and
+- Place inputs in a panel on the left and the beam drawing,
+  diagrams, and checks on the right. Keep diagrams within the available width and axis labels and
   numerical values legible. If the desktop input panel is taller than the
   viewport, let it scroll independently so its lower controls remain
   accessible without scrolling through the results.
@@ -147,6 +153,9 @@ sizing a floor beam or deck joist.
    0.003366 kip/ft full-span load. Reactions are 0.3202 k each; maximum
    moment is 0.961 kip-ft at 6 ft; `fb` is 0.539 ksi; maximum deflection
    is 0.157 in at 6 ft. Both checks pass.
+5. Simply supported, 30 ft, W18x35, uniform 2 kips/ft from 0 to 15 ft
+   only: reactions 22.5 k (left) and 7.5 k (right); max moment
+   126.6 kip-ft at 11.25 ft.
 
 ## Out of scope
 - Moisture- or product-specific changes to the stated lumber self-weight
