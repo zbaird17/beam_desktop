@@ -9,4 +9,4 @@
 
 ## File placement rule
 
-Save new project files in the folder that matches their purpose. Keep `AGENTS.md`, `spec.md`, and `prompts.md` at the project top level. Do not place project assets or working documents in the top level unless they are one of these files.
+Save new project files in the folder that matches their purpose. Keep `AGENTS.md`, `spec.md`, 'app.py', and `prompts.md` at the project top level. Do not place project assets or working documents in the top level unless they are one of these files.

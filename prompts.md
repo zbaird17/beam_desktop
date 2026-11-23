@@ -19,3 +19,4 @@
 2026-11-23 - Increased graph title padding in both the desktop UI and PDF diagrams so titles have clear separation above their plots.
 2026-11-23 - Verification complete: 17 tests pass and python app.py stays open after the graph-title spacing update.
 2026-11-23 - Re-ran the complete 17-test suite and all five specification beam validation cases successfully. Committed the UI, sign-convention, PDF, CSV, scrolling, output-layout, and graph-title changes as 3ddd29d.
+2026-11-23 - Reviewed project and README folder guidance. Created 01_data/, renamed 01_validation/ to 02_validation/, renamed 02_output/ to 03_output/, and removed generated root __pycache__. Source modules remain at the top as app entry points/modules, automated tests remain in tests/, and exported PDFs/CSV remain in 03_output/.
