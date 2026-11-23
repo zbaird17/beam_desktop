@@ -91,8 +91,8 @@ class ChartCrosshairTests(unittest.TestCase):
     def test_units_are_included(self):
         self.assertEqual(format_chart_crosshair_value("V", 10.25), "+10.250 kips")
         self.assertEqual(format_chart_crosshair_value("M", -51.3), "-51.300 kip-ft")
-        self.assertEqual(format_chart_crosshair_value("theta", 0.008324544),
-                         "+0.008325 rad")
+        self.assertEqual(format_chart_crosshair_value("theta", -0.008324544),
+                         "-0.008325 rad")
         self.assertEqual(format_chart_crosshair_value("y", -0.624341),
                          "-0.624 in")
 

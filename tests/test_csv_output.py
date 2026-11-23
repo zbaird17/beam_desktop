@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from csv_output import CSV_HEADERS, export_csv, export_positions
+from pdf_report import export_pdf
 
 
 class CsvOutputTests(unittest.TestCase):
@@ -42,6 +43,9 @@ class CsvOutputTests(unittest.TestCase):
         self.assertEqual(rows[1][0], "0.0000")
         self.assertEqual(rows[-1][0], "20.0000")
         self.assertEqual(len(rows[1]), 5)
+        midpoint = float(rows[41][4])
+        self.assertLess(midpoint, 0)
+        self.assertAlmostEqual(abs(midpoint), 0.62434, places=3)
 
         end_shear = float(rows[-1][1])
         end_moment = float(rows[-1][2])
@@ -49,6 +53,29 @@ class CsvOutputTests(unittest.TestCase):
         self.assertAlmostEqual(end_shear, -10.26, places=6)
         self.assertAlmostEqual(end_moment, 0.0, places=6)
         self.assertLess(abs(end_y), 1e-7)
+
+
+class PdfReportTests(unittest.TestCase):
+    def test_pdf_report_creates_two_page_document(self):
+        state = {
+            "support": "simply_supported",
+            "span": 20,
+            "material": "steel",
+            "section": "W12x26",
+            "deflection_limit": 360,
+            "loads": [
+                {"id": 1, "kind": "uniform", "magnitude": 1,
+                 "start": 0, "end": 20},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "beam_report.pdf"
+            export_pdf(path, state)
+            content = path.read_bytes()
+
+        self.assertTrue(content.startswith(b"%PDF-"))
+        self.assertGreater(len(content), 20_000)
+        self.assertGreaterEqual(content.count(b"/Type /Page"), 2)
 
 
 if __name__ == "__main__":

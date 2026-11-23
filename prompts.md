@@ -6,3 +6,16 @@
 2026-11-23 - Added spec.md requirements and app support for exporting beam output values as Excel-compatible CSV with unit-bearing headers and direct-equation values. Added CSV tests; validation suite verification is in progress.
 2026-11-23 - Added Excel-compatible CSV output for x, V, M, theta, and deflection. The CSV uses UTF-8 BOM, unit-bearing headers, 0.25-ft intervals, and direct equation evaluations. Verification: 15 tests passed, all five beam validation cases ran, and python app.py launched successfully.
 2026-11-23 - Committed the JSON design save/load feature, live chart cursor labels, and Excel-compatible CSV output as 169c30d. The 15-test suite passed before the commit; unrelated untracked project folders were left untouched.
+2026-11-23 - Added a PDF engineering-report feature and specification requirements. Verification is in progress.
+2026-11-23 - Added and verified the PDF engineering report: 16 tests passed, all five beam validation cases ran successfully, PDF generation produced a valid document, and python app.py launched successfully.
+2026-11-23 - Added visible downward/upward point and uniform load arrows in the UI and PDF beam drawings. Added vertical title padding and spacing to prevent diagram-title overlap with maximum readouts. Verification: 16 tests passed, all five beam cases ran, and a sample PDF was generated successfully.
+2026-11-23 - Fixed a startup crash caused by a stale properties_label UI reference after the section properties grid was changed.
+2026-11-23 - Added a double-column output grid below the graphs: maximum values and crosshair readout on the left; bending and deflection checks and suggested section on the right.
+2026-11-23 - Verification complete: output-layout compilation passed, all 16 tests passed, and python app.py stayed open.
+2026-11-23 - Added mouse-wheel and trackpad scrolling to both independent Tkinter result and input panes, without relying on the visible side scrollbars.
+2026-11-23 - Verification complete: mouse-wheel bindings compile, all 16 tests pass, and python app.py stays open.
+2026-11-23 - Changed rotation and deflection signs so downward is negative and upward is positive. Updated beam calculations, UI/PDF/CSV-facing values, specification text, and validation expectations.
+2026-11-23 - Verification complete: 17 tests pass, midspan deflection is negative, left/right rotations follow the downward-negative convention, and python app.py stays open.
+2026-11-23 - Increased graph title padding in both the desktop UI and PDF diagrams so titles have clear separation above their plots.
+2026-11-23 - Verification complete: 17 tests pass and python app.py stays open after the graph-title spacing update.
+2026-11-23 - Re-ran the complete 17-test suite and all five specification beam validation cases successfully. Preparing and committing the current UI, sign-convention, PDF, CSV, and graph-title changes.

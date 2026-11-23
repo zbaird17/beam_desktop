@@ -16,6 +16,7 @@ from beam_calculations import (
 )
 from design_io import DesignFileError, load_design, save_design
 from csv_output import export_csv
+from pdf_report import export_pdf
 
 
 def format_chart_crosshair_value(quantity, value):
@@ -75,6 +76,8 @@ class BeamDesignerUI:
                    command=self.save_design).pack(side="left")
         ttk.Button(header_actions, text="Export CSV",
                    command=self.export_csv).pack(side="left", padx=(6, 0))
+        ttk.Button(header_actions, text="Save PDF",
+                   command=self.save_pdf).pack(side="left", padx=(6, 0))
 
         app = ttk.Frame(self.root)
         app.pack(fill="both", expand=True, padx=18, pady=(0, 18))
@@ -119,6 +122,38 @@ class BeamDesignerUI:
                                lambda e: self.right_canvas.itemconfigure(right_window, width=e.width))
 
         self._build_results(right)
+        self._enable_mousewheel_scrolling()
+
+    def _enable_mousewheel_scrolling(self):
+        self.root.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.root.bind_all("<Button-4>", self._on_mousewheel)
+        self.root.bind_all("<Button-5>", self._on_mousewheel)
+
+    def _on_mousewheel(self, event):
+        canvas = None
+        widget = self.root.winfo_containing(event.x_root, event.y_root)
+        while widget is not None:
+            if widget is self.left_canvas:
+                canvas = self.left_canvas
+                break
+            if widget is self.right_canvas:
+                canvas = self.right_canvas
+                break
+            widget = getattr(widget, "master", None)
+        if canvas is None:
+            return
+
+        if hasattr(event, "delta") and event.delta:
+            direction = -1 if event.delta > 0 else 1
+            units = max(1, abs(int(event.delta)) // 40)
+        elif getattr(event, "num", None) == 4:
+            direction = -1
+            units = 1
+        else:
+            direction = 1
+            units = 1
+        canvas.yview_scroll(direction * units, "units")
+        return "break"
 
     def _card(self, parent):
         frame = ttk.Frame(parent, style="Card.TFrame", padding=14)
@@ -188,8 +223,14 @@ class BeamDesignerUI:
         self.section_combo.pack(fill="x")
         self.section_combo.bind("<<ComboboxSelected>>", self.on_section)
 
-        self.properties_label = ttk.Label(section_card, justify="left")
-        self.properties_label.pack(anchor="w", pady=(8, 0))
+        properties_grid = ttk.Frame(section_card)
+        properties_grid.pack(fill="x", pady=(8, 0))
+        properties_grid.columnconfigure(0, weight=1)
+        properties_grid.columnconfigure(1, weight=1)
+        self.properties_left_label = ttk.Label(properties_grid, justify="left")
+        self.properties_left_label.grid(row=0, column=0, sticky="nw", padx=(0, 8))
+        self.properties_right_label = ttk.Label(properties_grid, justify="left")
+        self.properties_right_label.grid(row=0, column=1, sticky="nw")
 
         limit_card = self._card(parent)
         limit_card.pack(fill="x")
@@ -241,27 +282,44 @@ class BeamDesignerUI:
         canvas_widget.focus_set()
         canvas_widget.bind("<KeyPress>", self.on_canvas_key)
 
-        summary_card = self._card(parent)
-        summary_card.pack(fill="x", pady=(0, 8))
-        self.summary_label = ttk.Label(summary_card, justify="left")
-        self.summary_label.pack(anchor="w")
+        output_grid = ttk.Frame(parent)
+        output_grid.pack(fill="x", pady=(0, 8))
+        output_grid.columnconfigure(0, weight=1)
+        output_grid.columnconfigure(1, weight=1)
 
-        readout_card = self._card(parent)
-        readout_card.pack(fill="x", pady=(0, 8))
+        left_output = ttk.Frame(output_grid)
+        left_output.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+
+        summary_card = self._card(left_output)
+        summary_card.pack(fill="x", pady=(0, 6))
+        ttk.Label(summary_card, text="Maximum values",
+                  style="Section.TLabel").pack(anchor="w")
+        self.summary_label = ttk.Label(summary_card, justify="left")
+        self.summary_label.pack(anchor="w", pady=(4, 0))
+
+        readout_card = self._card(left_output)
+        readout_card.pack(fill="x")
         ttk.Label(readout_card, text="Crosshair readout",
                   style="Section.TLabel").pack(anchor="w")
         self.readout_label = ttk.Label(readout_card, justify="left")
         self.readout_label.pack(anchor="w", pady=(4, 0))
 
-        checks_card = self._card(parent)
-        checks_card.pack(fill="x", pady=(0, 8))
-        self.checks_label = ttk.Label(checks_card, justify="left")
-        self.checks_label.pack(anchor="w")
+        right_output = ttk.Frame(output_grid)
+        right_output.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
-        recommendation_card = self._card(parent)
-        recommendation_card.pack(fill="x", pady=(0, 8))
+        checks_card = self._card(right_output)
+        checks_card.pack(fill="x", pady=(0, 6))
+        ttk.Label(checks_card, text="Bending and deflection checks",
+                  style="Section.TLabel").pack(anchor="w")
+        self.checks_label = ttk.Label(checks_card, justify="left")
+        self.checks_label.pack(anchor="w", pady=(4, 0))
+
+        recommendation_card = self._card(right_output)
+        recommendation_card.pack(fill="x")
+        ttk.Label(recommendation_card, text="Suggested section",
+                  style="Section.TLabel").pack(anchor="w")
         self.recommendation_label = ttk.Label(recommendation_card, justify="left")
-        self.recommendation_label.pack(anchor="w")
+        self.recommendation_label.pack(anchor="w", pady=(4, 0))
         self.use_button = ttk.Button(recommendation_card, text="Use suggested section",
                                      command=self.use_recommendation)
         self.use_button.pack(anchor="w", pady=(6, 0))
@@ -387,6 +445,28 @@ class BeamDesignerUI:
         messagebox.showinfo(
             "CSV exported",
             f"Exported beam output values to:\n{path}",
+            parent=self.root,
+        )
+
+    def save_pdf(self):
+        path = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="Save beam design PDF",
+            defaultextension=".pdf",
+            filetypes=(("PDF document (*.pdf)", "*.pdf"),
+                       ("All files (*.*)", "*.*")),
+        )
+        if not path:
+            return
+        try:
+            export_pdf(path, self._state_for_file())
+        except (ValueError, OSError) as exc:
+            messagebox.showerror("Could not save PDF", str(exc),
+                                 parent=self.root)
+            return
+        messagebox.showinfo(
+            "PDF saved",
+            f"Saved the engineering report to:\n{path}",
             parent=self.root,
         )
 
@@ -518,10 +598,13 @@ class BeamDesignerUI:
         support_label = "Simply supported" if self.support == "simply_supported" else "Cantilever"
         self.title_label.configure(text=f"{support_label} beam")
         p = analysis.properties
-        self.properties_label.configure(
-            text=(f"E = {p['E']:,.0f} ksi\nFb = {p['Fb']:,.3f} ksi\n"
-                  f"Ix = {p['Ix']:g} in4\nSx = {p['Sx']:g} in3\n"
-                  f"Weight = {p['weight']:g} lb/ft\n"
+        self.properties_left_label.configure(
+            text=(f"E = {p['E']:,.0f} ksi\n"
+                  f"Ix = {p['Ix']:g} in4\n"
+                  f"Weight = {p['weight']:g} lb/ft"))
+        self.properties_right_label.configure(
+            text=(f"Fb = {p['Fb']:,.3f} ksi\n"
+                  f"Sx = {p['Sx']:g} in3\n"
                   f"Self-weight = {p['weight']/1000:.6g} kip/ft"))
 
         ra = analysis.reactions["RA"]
@@ -608,11 +691,17 @@ class BeamDesignerUI:
         for load in self.loads:
             if load["kind"] == "point":
                 direction = 1 if load["magnitude"] >= 0 else -1
+                text_y = 2.2 * direction
                 ax.annotate(f"{load['magnitude']:g} kip",
                             xy=(load["position"], 0),
-                            xytext=(load["position"], 2.2 * direction),
+                            xytext=(load["position"], text_y),
                             ha="center",
-                            arrowprops=dict(arrowstyle="-|>", color="#a45b2a"))
+                            arrowprops=dict(
+                                arrowstyle="-|>" if direction > 0 else "<|-",
+                                color="#a45b2a",
+                                mutation_scale=14,
+                                lw=1.5,
+                            ))
             else:
                 start = max(0, load["start"])
                 end = min(self.span, load["end"])
@@ -624,20 +713,43 @@ class BeamDesignerUI:
                                 ha="center", color="#4567a7")
                     ax.plot([start, end], [0.7 if y > 0 else -0.7] * 2,
                             color="#4567a7", linewidth=2)
+                    arrow_count = max(2, min(12, int((end - start) / 1.5) + 1))
+                    for arrow_index in range(arrow_count):
+                        fraction = arrow_index / (arrow_count - 1)
+                        position = start + (end - start) * fraction
+                        if load["magnitude"] >= 0:
+                            ax.annotate("", xy=(position, 0.02),
+                                        xytext=(position, 1.15),
+                                        arrowprops=dict(
+                                            arrowstyle="-|>",
+                                            color="#4567a7",
+                                            mutation_scale=12,
+                                            lw=1.2,
+                                        ))
+                        else:
+                            ax.annotate("", xy=(position, 1.15),
+                                        xytext=(position, 0.02),
+                                        arrowprops=dict(
+                                            arrowstyle="-|>",
+                                            color="#4567a7",
+                                            mutation_scale=12,
+                                            lw=1.2,
+                                        ))
         ax.text(self.span / 2, -2.3, f"L = {self.span:g} ft",
                 ha="center", fontsize=9)
 
     def _draw_diagrams(self, analysis):
         quantities = (
-            (self.shear_ax, "V", "Shear (kips)",
+            (self.shear_ax, "V", "Shear",
              analysis.shear_max, "#087e83"),
-            (self.moment_ax, "M", "Moment (kip-ft)",
+            (self.moment_ax, "M", "Moment",
              analysis.moment_max, "#087e83"),
-            (self.rotation_ax, "theta", "Rotation θ (rad)",
+            (self.rotation_ax, "theta", "Rotation θ",
              analysis.rotation_max, "#7a4aa3"),
-            (self.deflection_ax, "y", "Deflection y (in)",
+            (self.deflection_ax, "y", "Deflection y (downward negative)",
              analysis.deflection_max, "#4567a7"),
         )
+        units = {"V": "kips", "M": "kip-ft", "theta": "rad", "y": "in"}
         for ax, key, label, maximum, color in quantities:
             ax.clear()
             ax.set_facecolor("#ffffff")
@@ -647,7 +759,9 @@ class BeamDesignerUI:
             ys = [sample[key] for sample in analysis.samples]
             ax.plot(xs, ys, color=color, linewidth=1.8)
             ax.fill_between(xs, 0, ys, alpha=0.10, color=color)
-            ax.set_ylabel(label, fontsize=8)
+            ax.set_title(f"{label} ({units[key]})", loc="left",
+                         fontsize=9, fontweight="bold", pad=30)
+            ax.set_ylabel(units[key], fontsize=8)
             ax.set_xlim(0, self.span)
             ax.tick_params(axis="both", labelsize=8)
             if ax is not self.deflection_ax:

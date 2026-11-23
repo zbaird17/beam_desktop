@@ -352,10 +352,12 @@ def analyze_beam(support: str, span: float, material: str, section: str,
     rotation_scale = deflection_scale / 12.0
 
     def deflection_at(x: float) -> float:
-        return deflection_basis(x) * deflection_scale
+        # Downward deflection is negative in the exported and displayed convention.
+        return -deflection_basis(x) * deflection_scale
 
     def rotation_at(x: float) -> float:
-        return slope_basis(x) * rotation_scale
+        # Negative rotation follows the same downward-negative sign convention.
+        return -slope_basis(x) * rotation_scale
 
     fine_positions = tuple(sorted(base_positions))
     deflection_roots = find_roots(fine_positions, slope_basis)
@@ -468,6 +470,6 @@ def evaluate_at(analysis: Analysis, x: float,
         "x": x,
         "V": shear,
         "M": moment,
-        "theta": slope_basis * deflection_scale / 12.0,
-        "y": value_basis * deflection_scale,
+        "theta": -slope_basis * deflection_scale / 12.0,
+        "y": -value_basis * deflection_scale,
     }

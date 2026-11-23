@@ -64,6 +64,22 @@ class BeamCalculationTests(unittest.TestCase):
         self.assert_close(a.moment_max.value, 130.258)
         self.assert_close(a.moment_max.positions[0], 11.314)
 
+    def test_signed_deflection_and_rotation(self):
+        a = analyze_beam(
+            "simply_supported", 20, "steel", "W12x26",
+            [], [UniformLoad(1.0, 0, 20)], 360)
+        from beam_calculations import evaluate_at
+        mid = evaluate_at(
+            a, 10.0, (), (UniformLoad(1.0, 0, 20),))
+        left = evaluate_at(
+            a, 0.0, (), (UniformLoad(1.0, 0, 20),))
+        right = evaluate_at(
+            a, 20.0, (), (UniformLoad(1.0, 0, 20),))
+        self.assertLess(mid["y"], 0)
+        self.assert_close(abs(mid["y"]), 0.624)
+        self.assertLess(left["theta"], 0)
+        self.assertGreater(right["theta"], 0)
+
     def test_clipped_uniform_and_upward_load(self):
         a = analyze_beam(
             "simply_supported", 20, "steel", "W12x26",
