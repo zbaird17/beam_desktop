@@ -5,4 +5,4 @@
 2026-11-23 - Updated the desktop chart crosshair so each of the four charts displays a compact live signed value with units beside the cursor point. Added unit-format tests; 13 tests passed and the app launched successfully.
 2026-11-23 - Added spec.md requirements and app support for exporting beam output values as Excel-compatible CSV with unit-bearing headers and direct-equation values. Added CSV tests; validation suite verification is in progress.
 2026-11-23 - Added Excel-compatible CSV output for x, V, M, theta, and deflection. The CSV uses UTF-8 BOM, unit-bearing headers, 0.25-ft intervals, and direct equation evaluations. Verification: 15 tests passed, all five beam validation cases ran, and python app.py launched successfully.
-2026-11-23 - Preparing a Git commit for the JSON design save/load feature, live chart cursor labels, and Excel-compatible CSV output. Excluding generated caches and unrelated untracked project folders.
+2026-11-23 - Committed the JSON design save/load feature, live chart cursor labels, and Excel-compatible CSV output as 169c30d. The 15-test suite passed before the commit; unrelated untracked project folders were left untouched.
